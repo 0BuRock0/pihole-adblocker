@@ -1,0 +1,34 @@
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    hostname: pihole
+
+    # --- Networking: bound to localhost only ---
+    # This machine is the only thing that should ever be able to reach
+    # Pi-hole's DNS service or its admin dashboard, since this project
+    # is local-only, not network-wide.
+    ports:
+      - "127.0.0.1:53:53/tcp"
+      - "127.0.0.1:53:53/udp"
+      - "127.0.0.1:8080:80/tcp"   # dashboard: http://localhost:8080/admin
+
+    environment:
+      TZ: "Europe/Istanbul"
+      # Loaded from .env — never hardcode the real password in this file.
+      FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD}"
+
+    # --- Minimal volumes: only what Pi-hole actually needs ---
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+
+    # --- Self-healing across sleep/wake and reboots (Phase 3) ---
+    restart: unless-stopped
+
+    # --- Minimize container privileges ---
+    # NET_ADMIN is only needed if you turn on Pi-hole's built-in DHCP
+    # server, which you won't for a local-only, single-machine setup.
+    # Left here, commented, so you remember why it's absent.
+    # cap_add:
+    #   - NET_ADMIN
