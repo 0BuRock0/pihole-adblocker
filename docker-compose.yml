@@ -35,16 +35,34 @@ services:
 
     depends_on:
       - dnscrypt-proxy
-    # NOTE: Pi-hole's Custom DNS server (set in the dashboard, not here)
-    # must be "dnscrypt-proxy#53" — the service name below, on its
-    # internal container port. 127.0.0.1 does NOT work here: each
-    # container has its own isolated loopback, so 127.0.0.1 from inside
-    # Pi-hole means Pi-hole itself, not this dnscrypt-proxy service.
+    # --- Upstream DNS: set in the Pi-hole dashboard, not here ---
+    # Custom DNS server must be "dnscrypt-proxy#53" — the service name
+    # below, on its internal container port. 127.0.0.1 does NOT work
+    # here: each container has its own isolated loopback, so 127.0.0.1
+    # from inside Pi-hole means Pi-hole itself, not this dnscrypt-proxy
+    # service. Since both services are defined in this one compose
+    # file with no custom "networks:" section, Compose puts them on a
+    # shared default network automatically, and containers on that
+    # network can resolve each other by service name — that's what
+    # makes "dnscrypt-proxy" (rather than an IP) work as a hostname.
+    #
+    # --- DNSSEC: keep Pi-hole's own DNSSEC toggle OFF ---
+    # Quad9's DNSCrypt server already validates DNSSEC before
+    # dnscrypt-proxy hands back a response, but doesn't forward the
+    # raw signature data for Pi-hole to independently re-verify. With
+    # Pi-hole's DNSSEC setting ON, every query gets rejected as
+    # unverifiable and DNS resolution breaks entirely. Real DNSSEC
+    # protection is still active — it's just enforced one layer
+    # earlier, at Quad9, not duplicated in Pi-hole on top of it.
 
   dnscrypt-proxy:
     image: klutchell/dnscrypt-proxy:latest
     container_name: dnscrypt-proxy
     restart: unless-stopped
+    # These host-mapped ports are for your own testing/debugging from
+    # the Mac directly (e.g. `dig @127.0.0.1 -p 5053`) — Pi-hole itself
+    # never uses this mapping; it reaches this container via the
+    # service name "dnscrypt-proxy" on the internal port 53 instead.
     ports:
       - "127.0.0.1:5053:53/tcp"
       - "127.0.0.1:5053:53/udp"
