@@ -35,6 +35,11 @@ services:
 
     depends_on:
       - dnscrypt-proxy
+    # NOTE: Pi-hole's Custom DNS server (set in the dashboard, not here)
+    # must be "dnscrypt-proxy#53" — the service name below, on its
+    # internal container port. 127.0.0.1 does NOT work here: each
+    # container has its own isolated loopback, so 127.0.0.1 from inside
+    # Pi-hole means Pi-hole itself, not this dnscrypt-proxy service.
 
   dnscrypt-proxy:
     image: klutchell/dnscrypt-proxy:latest
